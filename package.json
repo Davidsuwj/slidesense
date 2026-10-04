@@ -1,0 +1,38 @@
+{
+  "name": "slidesense",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server/index.mjs",
+    "build": "tsc --noEmit && vite build",
+    "start": "NODE_ENV=production node server/index.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "setup": "node scripts/setup-model.mjs",
+    "postinstall": "node scripts/setup-model.mjs",
+    "verify:upload": "node scripts/verify-upload.mjs",
+    "format": "prettier --write src server scripts tests index.html vite.config.ts tsconfig.json package.json"
+  },
+  "dependencies": {
+    "@fontsource/dm-sans": "^5.3.0",
+    "@mediapipe/tasks-vision": "^1.0.1",
+    "@phosphor-icons/react": "^2.1.10",
+    "express": "^5.2.1",
+    "multer": "^2.4.0",
+    "pdfjs-dist": "^6.4.299",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "prettier": "^3.9.9",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

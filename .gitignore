@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.slidesense/
+.env
+.env.*
+!.env.example
+test-results/
+.DS_Store
+public/models/*
+public/wasm/*
+docs/demo.webm
+
+.chart-data-*/
+outputs/

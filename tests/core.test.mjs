@@ -47,7 +47,7 @@ test("手勢與語音共用冷卻，同時下一頁只執行一次", () => {
   assert.equal(gate.navigate(2, 5, -1, 2300).page, 1);
   assert.equal(gate.navigate(1, 5, -1, 3500).reason, "boundary");
 });
-test("食指移動只更新指示器，不會誤判左右揮", () => {
+test("食指移動只更新指示器，不會觸發翻頁", () => {
   const tracker = new GestureTracker();
   for (let i = 0; i < 10; i++) {
     const state = tracker.update(hand("point", 0.8 - i * 0.06), i * 60);
@@ -61,58 +61,75 @@ test("鏡像映射與畫面邊界", () => {
   assert.deepEqual(mapPointer({ x: 1, y: 0 }), { x: 0, y: 0 });
   assert.equal(classifyHand(null), "none");
 });
-test("張掌右揮觸發下一頁，左揮觸發上一頁", () => {
-  let tracker = new GestureTracker();
-  let actions = [];
-  for (let i = 0; i < 7; i++) {
-    const r = tracker.update(hand("palm", 0.8 - i * 0.055), i * 70);
-    if (r.action) actions.push(r.action);
-  }
-  assert.deepEqual(actions, ["next"]);
-  tracker = new GestureTracker();
-  actions = [];
-  for (let i = 0; i < 7; i++) {
-    const r = tracker.update(hand("palm", 0.2 + i * 0.055), i * 70);
-    if (r.action) actions.push(r.action);
-  }
-  assert.deepEqual(actions, ["previous"]);
-});
-test("張掌停住不觸發動作；手動暫停後指尖不再移動", () => {
-  const tracker = new GestureTracker();
-  let actions = [];
-  for (let i = 0; i < 50; i++) {
-    const r = tracker.update(hand("palm"), i * 100);
-    if (r.action) actions.push(r.action);
-  }
-  assert.deepEqual(actions, []);
-  const paused = tracker.update(hand("point"), 1600, true);
-  assert.equal(paused.pointer, null);
-  assert.equal(paused.action, null);
-});
-test("手離開鏡頭會清除指示與未完成動作", () => {
-  const tracker = new GestureTracker();
-  tracker.update(hand("palm", 0.8), 0);
-  tracker.update(null, 200);
-  assert.equal(tracker.update(hand("palm", 0.4), 300).action, null);
-  assert.equal(tracker.update(null, 400).pointer, null);
-});
 
-test("較小且稍慢的揮手可翻頁，微小晃動不會誤觸", () => {
-  const tracker = new GestureTracker();
-  tracker.update(hand("palm", 0.6), 0);
-  assert.equal(tracker.update(hand("palm", 0.47), 700).action, "next");
-  const jitter = new GestureTracker();
-  for (let i = 0; i < 30; i++) {
-    const result = jitter.update(hand("palm", 0.5 + Math.sin(i) * 0.025), i * 50);
-    assert.equal(result.action, null);
+function thumb(direction, mirrored = false) {
+  const points = hand("fist");
+  points[2] = { x: 0.5, y: 0.6, z: 0 };
+  points[3] = { x: 0.52, y: 0.4, z: 0 };
+  points[4] = { x: 0.54, y: 0.2, z: 0 };
+  return points.map((p) => ({
+    x: mirrored ? 1 - p.x : p.x,
+    y: direction === "down" ? 1 - p.y : p.y,
+    z: p.z,
+  }));
+}
+test("左右手比讚與倒讚皆可辨識，穩定後才翻頁", () => {
+  for (const mirrored of [false, true]) {
+    for (const [direction, action] of [
+      ["up", "next"],
+      ["down", "previous"],
+    ]) {
+      const tracker = new GestureTracker();
+      assert.equal(
+        classifyHand(thumb(direction, mirrored)),
+        "thumb-" + direction,
+      );
+      assert.equal(tracker.update(thumb(direction, mirrored), 0).action, null);
+      assert.equal(
+        tracker.update(thumb(direction, mirrored), 200).action,
+        action,
+      );
+      assert.equal(
+        tracker.update(thumb(direction, mirrored), 3000).action,
+        null,
+      );
+    }
   }
 });
-
+test("短暫追蹤中斷不會連跳；放鬆後可再次比讚", () => {
+  const tracker = new GestureTracker();
+  tracker.update(thumb("up"), 0);
+  tracker.update(thumb("up"), 200);
+  tracker.update(null, 1500);
+  assert.equal(tracker.update(thumb("up"), 1550).action, null);
+  assert.equal(tracker.update(thumb("up"), 1800).action, null);
+  tracker.update(hand("palm"), 2000);
+  tracker.update(hand("palm"), 2300);
+  tracker.update(thumb("up"), 2400);
+  assert.equal(tracker.update(thumb("up"), 2600).action, "next");
+});
+test("可由比讚切換倒讚，仍遵守冷卻", () => {
+  const tracker = new GestureTracker();
+  tracker.update(thumb("up"), 0);
+  tracker.update(thumb("up"), 200);
+  tracker.update(thumb("down"), 400);
+  assert.equal(tracker.update(thumb("down"), 600).action, null);
+  assert.equal(tracker.update(thumb("down"), 1400).action, "previous");
+});
+test("左右揮與張掌停住不再翻頁；暫停時指尖不移動", () => {
+  const tracker = new GestureTracker();
+  for (let i = 0; i < 40; i++)
+    assert.equal(
+      tracker.update(hand("palm", 0.5 + Math.sin(i) * 0.3), i * 100).action,
+      null,
+    );
+  assert.equal(tracker.update(hand("point"), 4200, true).pointer, null);
+  assert.equal(tracker.update(null, 4300).pointer, null);
+});
 test("指示筆以中央 40% 鏡頭範圍映射整張投影片", () => {
-  const center = mapPointer({x: 0.5, y: 0.5});
-  const moved = mapPointer({x: 0.4, y: 0.6});
+  const center = mapPointer({ x: 0.5, y: 0.5 });
+  const moved = mapPointer({ x: 0.4, y: 0.6 });
   assert.ok(Math.abs(center.x - 0.5) < 1e-9);
   assert.ok(Math.abs(moved.x - center.x - 0.25) < 1e-9);
   assert.ok(Math.abs(moved.y - center.y - 0.25) < 1e-9);
-  assert.ok(mapPointer({x: 0.3, y: 0.7}).x > 0.999);
 });

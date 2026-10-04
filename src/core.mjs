@@ -45,6 +45,21 @@ export function classifyHand(points) {
       distance(points[tip], points[0]) >
       distance(points[pip], points[0]) * 1.18,
   );
+  if (extended.every((value) => !value)) {
+    const palmSize = distance(points[0], points[9]);
+    const dx = points[4].x - points[2].x;
+    const dy = points[4].y - points[2].y;
+    const thumbExtended =
+      distance(points[4], points[0]) > distance(points[3], points[0]) * 1.08;
+    if (
+      palmSize > 0 &&
+      thumbExtended &&
+      Math.abs(dy) > palmSize * 0.45 &&
+      Math.abs(dy) > Math.abs(dx) * 1.15
+    ) {
+      return dy < 0 ? "thumb-up" : "thumb-down";
+    }
+  }
   if (extended[0] && !extended[1] && !extended[2] && !extended[3])
     return "point";
   if (extended.every(Boolean)) return "palm";
@@ -63,41 +78,41 @@ export class GestureTracker {
     this.reset();
   }
   reset() {
-    this.history = [];
-    this.previous = "none";
+    this.candidate = null;
+    this.candidateSince = 0;
+    this.neutralSince = null;
+    this.latched = null;
     this.last = -Infinity;
   }
   update(points, now, paused = false) {
     const kind = classifyHand(points);
     const result = { kind, pointer: null, action: null };
-    if (paused || kind === "none") {
-      this.history = [];
-      this.previous = kind;
+    if (paused) {
+      this.candidate = null;
       return result;
     }
-    if (kind === "point") {
-      result.pointer = mapPointer(points[8]);
-      this.history = [];
-    } else if (kind === "palm") {
-      const x = 1 - points[9].x,
-        y = points[9].y;
-      if (this.previous !== "palm") {
-        this.history = [];
-      }
-      this.history.push({ x, y, t: now });
-      this.history = this.history.filter((p) => now - p.t < 800);
-      const start = this.history[0];
-      const dx = x - start.x,
-        dy = y - start.y;
-      if (Math.abs(dx) > 0.12 && Math.abs(dy) < 0.18 && now - this.last > 1100) {
-        result.action = dx > 0 ? "next" : "previous";
-        this.last = now;
-        this.history = [];
-      }
-    } else {
-      this.history = [];
+    if (kind === "point") result.pointer = mapPointer(points[8]);
+    if (kind !== "thumb-up" && kind !== "thumb-down") {
+      this.candidate = null;
+      if (this.neutralSince === null) this.neutralSince = now;
+      if (now - this.neutralSince >= 220) this.latched = null;
+      return result;
     }
-    this.previous = kind;
+    this.neutralSince = null;
+    if (this.candidate !== kind) {
+      this.candidate = kind;
+      this.candidateSince = now;
+    }
+    // Require a stable pose; holding it must not repeatedly turn pages.
+    if (
+      now - this.candidateSince >= 180 &&
+      this.latched !== kind &&
+      now - this.last >= 1100
+    ) {
+      result.action = kind === "thumb-up" ? "next" : "previous";
+      this.latched = kind;
+      this.last = now;
+    }
     return result;
   }
 }

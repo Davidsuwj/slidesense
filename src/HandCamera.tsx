@@ -121,6 +121,8 @@ export default function HandCamera({
                   : {
                       point: "食指指示",
                       palm: "張開手掌",
+                      "thumb-up": "比讚 · 下一頁",
+                      "thumb-down": "倒讚 · 上一頁",
                       none: "等待手勢",
                       other: "辨識中",
                     }[state.kind],
@@ -180,7 +182,7 @@ export default function HandCamera({
       </div>
       <div className="pose-line">
         <HandPalm size={17} />
-        <span>{enabled ? pose : "右揮翻頁 · 食指指示"}</span>
+        <span>{enabled ? pose : "比讚／倒讚翻頁 · 食指指示"}</span>
       </div>
     </div>
   );

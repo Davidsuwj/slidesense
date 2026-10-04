@@ -9,6 +9,7 @@ import {
   ArrowsIn,
   HandPointing,
   HandPalm,
+  ThumbsUp,
   Microphone,
   Camera,
   SpeakerHigh,
@@ -581,7 +582,7 @@ export default function App() {
             <div className="feature-strip">
               <span>
                 <HandPalm size={22} />
-                揮手換頁
+                比讚換頁
               </span>
               <span>
                 <HandPointing size={22} />
@@ -629,9 +630,9 @@ export default function App() {
           />
           <div className="gesture-help">
             <span>
-              <HandPalm size={18} />
-              <b>張掌左右揮</b>
-              <small>前後翻頁</small>
+              <ThumbsUp size={18} />
+              <b>比讚／倒讚</b>
+              <small>下一頁／上一頁</small>
             </span>
             <span>
               <HandPointing size={18} />

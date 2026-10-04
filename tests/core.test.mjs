@@ -96,3 +96,23 @@ test("手離開鏡頭會清除指示與未完成動作", () => {
   assert.equal(tracker.update(hand("palm", 0.4), 300).action, null);
   assert.equal(tracker.update(null, 400).pointer, null);
 });
+
+test("較小且稍慢的揮手可翻頁，微小晃動不會誤觸", () => {
+  const tracker = new GestureTracker();
+  tracker.update(hand("palm", 0.6), 0);
+  assert.equal(tracker.update(hand("palm", 0.47), 700).action, "next");
+  const jitter = new GestureTracker();
+  for (let i = 0; i < 30; i++) {
+    const result = jitter.update(hand("palm", 0.5 + Math.sin(i) * 0.025), i * 50);
+    assert.equal(result.action, null);
+  }
+});
+
+test("指示筆以中央 40% 鏡頭範圍映射整張投影片", () => {
+  const center = mapPointer({x: 0.5, y: 0.5});
+  const moved = mapPointer({x: 0.4, y: 0.6});
+  assert.ok(Math.abs(center.x - 0.5) < 1e-9);
+  assert.ok(Math.abs(moved.x - center.x - 0.25) < 1e-9);
+  assert.ok(Math.abs(moved.y - center.y - 0.25) < 1e-9);
+  assert.ok(mapPointer({x: 0.3, y: 0.7}).x > 0.999);
+});

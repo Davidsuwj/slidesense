@@ -53,8 +53,8 @@ export function classifyHand(points) {
 export function mapPointer(point) {
   const clamp = (x) => Math.max(0, Math.min(1, x));
   return {
-    x: clamp((1 - point.x - 0.12) / 0.76),
-    y: clamp((point.y - 0.12) / 0.76),
+    x: clamp((1 - point.x - 0.3) / 0.4),
+    y: clamp((point.y - 0.3) / 0.4),
   };
 }
 
@@ -85,11 +85,11 @@ export class GestureTracker {
         this.history = [];
       }
       this.history.push({ x, y, t: now });
-      this.history = this.history.filter((p) => now - p.t < 650);
+      this.history = this.history.filter((p) => now - p.t < 800);
       const start = this.history[0];
       const dx = x - start.x,
         dy = y - start.y;
-      if (Math.abs(dx) > 0.2 && Math.abs(dy) < 0.18 && now - this.last > 1100) {
+      if (Math.abs(dx) > 0.12 && Math.abs(dy) < 0.18 && now - this.last > 1100) {
         result.action = dx > 0 ? "next" : "previous";
         this.last = now;
         this.history = [];
